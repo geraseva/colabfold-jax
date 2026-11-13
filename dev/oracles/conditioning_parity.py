@@ -612,6 +612,12 @@ def native_esmfold2(model, batch, rng, n, noise):
   s_inputs = (rng.normal(size=(n, c_in_esm)) * 0.5).astype(np.float32)
   s_inputs[:, np.setdiff1d(np.arange(c_in_esm), idx)] = 0.0
   s_inputs_ours = s_inputs[:, idx]
+  # (a DNA token's unknown residue is ESMFold2's DN, class 32, where AF3 writes N for both - its column 30, which our
+  # side widens to DN by is_dna, featurization.widen_s_inputs)
+  dna = np.asarray(batch.token_features.is_dna).astype(bool)[:n]
+  for off in (384, 384 + 33):
+    s_inputs[dna, off + 32] = s_inputs[dna, off + _esm_of_af3[30]]
+    s_inputs[dna, off + _esm_of_af3[30]] = 0.0
   z = (rng.normal(size=(n, n, c_z)) * 0.5).astype(np.float32)
   s = (rng.normal(size=(n, c_s)) * 0.5).astype(np.float32)   # unused: see below
 

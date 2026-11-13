@@ -200,12 +200,7 @@ class ConfidenceHead(hk.Module):
     # boltz2 shares this method and must NOT widen: its s_inputs is AF3's own
     # 447 and its weights are converted at that width.
     if self.global_config.model in model_config.PAIR_ONLY_TRUNK:
-      n_af3 = residue_names.POLYMER_TYPES_NUM_WITH_UNKNOWN_AND_GAP
-      widen = featurization.widen_to_esm_classes
-      target_feat = jnp.concatenate(
-          [widen(target_feat[..., :n_af3]),
-           widen(target_feat[..., n_af3:2 * n_af3]),
-           target_feat[..., 2 * n_af3:]], axis=-1)
+      target_feat = featurization.widen_s_inputs(target_feat, token_features.is_dna)
     s_inputs = hm.LayerNorm(name='s_inputs_norm')(target_feat)
     single_act = hm.LayerNorm(name='s_norm')(single_act)
     single_act = single_act + hm.Linear(

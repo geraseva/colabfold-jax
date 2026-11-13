@@ -681,6 +681,9 @@ MIN_BLOB_CONVENTION: dict[str, int] = {
     # blob before convention 3 (converters/chai1.py); same names and shapes, so
     # only this record can tell a stale cached blob from a current one.
     'chai1': 3,
+    # 2026-11-13: ESMFold2's z_init and MSA-encoder s_inputs 451-wide, DN's rows kept (convention 4); a blob before
+    # it holds AF3's 447 and no longer fits the graph
+    **{m: 4 for m in ESMFOLD2_FAMILY},
 }
 
 # Models whose outer product adds the OUTPUT BIAS AFTER the divide, i.e.

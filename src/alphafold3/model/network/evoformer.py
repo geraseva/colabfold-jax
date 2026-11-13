@@ -516,6 +516,11 @@ class Evoformer(hk.Module):
     stock AF3 path reads target_feat.
     """
     src = single_act if single_act is not None else target_feat
+    if single_act is None and self.global_config.model in model_config.PAIR_ONLY_TRUNK:
+      # ESMFold2's z_init reads its own 451-wide s_inputs, widened as the diffusion and confidence heads widen it -
+      # with ESMFold2's DN for a DNA chain's unknown residue, which AF3's 447 cannot express (left/right_single are
+      # converted 451-wide, converters/esmfold2.permute_s_inputs)
+      src = featurization.widen_s_inputs(src, token_features.is_dna)
     left_single = hm.Linear(self.config.pair_channel, name='left_single')(
         src
     )[:, None]
@@ -836,6 +841,8 @@ class Evoformer(hk.Module):
     # that concluded otherwise excluded that module -- and skipping it left the
     # stack short an entire input.
     s_for_msa = target_feat
+    if self.global_config.model in model_config.PAIR_ONLY_TRUNK:      # (ESMFold2's MSA encoder: its 451-wide s_inputs)
+      s_for_msa = featurization.widen_s_inputs(target_feat, batch.token_features.is_dna)
     if chai1 and single_post_recycle is not None:
       s_for_msa = single_post_recycle.astype(target_feat.dtype)
     msa_activations += hm.Linear(

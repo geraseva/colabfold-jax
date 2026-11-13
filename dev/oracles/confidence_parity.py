@@ -882,6 +882,10 @@ def native_esmfold2(model, batch, pos, rng, n, max_atoms):
   s_inputs[:, n_af3:2 * n_af3] = si451[:, 384 + n_esm + cols]
   s_inputs[:, 2 * n_af3] = si451[:, 384 + 2 * n_esm]
   s_inputs[:, 2 * n_af3 + 1:] = si451[:, :384]
+  # (AF3's column 30 is a DNA token's DN, ESM's class 32, and any other token's N)
+  dna = np.asarray(batch.token_features.is_dna).astype(bool)[:si451.shape[0]]
+  s_inputs[dna, 30] = si451[dna, 384 + n_esm - 1]
+  s_inputs[dna, n_af3 + 30] = si451[dna, 384 + 2 * n_esm - 1]
 
   # x_pred: packed -> our dense (token, slot). Unmatched slots stay zero and
   # are masked out of every comparison.

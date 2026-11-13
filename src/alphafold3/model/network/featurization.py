@@ -31,16 +31,28 @@ import jax
 import jax.numpy as jnp
 
 
-def widen_to_esm_classes(block):
+def widen_to_esm_classes(block, is_dna):
   """An AF3 31-class restype or profile block [..., 31] in ESMFold2's 33 classes, for a layer that keeps their width.
 
   ESM: 0 unused, 1 the gap, 2..22 the residues and UNK, 23..26 A G C U, 27 N, 28..31 DA DG DC DT, 32 DN. AF3 puts the
-  gap at 21 and N last, after the DNA (converters.esmfold2.esm_class_of_af3 is the same table for weight rows);
-  DN is not in AF3's 31 classes.
+  gap at 21 and N last, after the DNA (converters.esmfold2.esm_class_of_af3 is the same table for weight rows).
+  AF3's 31 classes have no DN: its featuriser writes a DNA chain's unknown residue as N (features.py, UNK_DNA ->
+  UNK_NUCLEIC_ONE_LETTER). ESMFold2 tells them apart (DN for DNA, N for RNA), so a DNA token's N column is DN's:
+  `is_dna` [...] (the tokens' chain type) routes it, as biohub's builder types it.
   """
   zero = jnp.zeros_like(block[..., :1])
-  return jnp.concatenate([zero, block[..., 21:22], block[..., :21], block[..., 22:26], block[..., 30:31],
-                          block[..., 26:30], zero], axis=-1)
+  dna = jnp.asarray(is_dna, block.dtype)[..., None]
+  unk = block[..., 30:31]
+  return jnp.concatenate([zero, block[..., 21:22], block[..., :21], block[..., 22:26], unk * (1 - dna),
+                          block[..., 26:30], unk * dna], axis=-1)
+
+
+def widen_s_inputs(feat, is_dna):
+  """AF3's 447-wide s_inputs [restype 31 | profile 31 | the rest] as ESMFold2's 451 (each 31-class block widened,
+  DN routed by `is_dna`), in AF3's block order - the order converters/esmfold2.permute_s_inputs writes its rows in."""
+  n = residue_names.POLYMER_TYPES_NUM_WITH_UNKNOWN_AND_GAP
+  return jnp.concatenate([widen_to_esm_classes(feat[..., :n], is_dna), widen_to_esm_classes(feat[..., n:2 * n], is_dna),
+                          feat[..., 2 * n:]], axis=-1)
 
 
 def _grid_keys(key, shape):

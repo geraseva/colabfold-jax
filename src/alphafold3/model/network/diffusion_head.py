@@ -388,12 +388,7 @@ class DiffusionHead(hk.Module):
       # gap column on ESMFold2's first NUCLEIC class and shifted every nucleic
       # class down one -- which no single-sequence protein fold can see, since
       # both the gap column and the nucleic columns are then identically zero.
-      n = residue_names.POLYMER_TYPES_NUM_WITH_UNKNOWN_AND_GAP
-      widen = featurization.widen_to_esm_classes
-
-      features_1d = jnp.concatenate(
-          [widen(features_1d[..., :n]), widen(features_1d[..., n:2 * n]),
-           features_1d[..., 2 * n:]], axis=-1)
+      features_1d = featurization.widen_s_inputs(features_1d, batch.token_features.is_dna)
     single_cond = hm.LayerNorm(
         use_fast_variance=False,
         # chai is AFFINE here (token_pair_proj.0 / token_in_proj.0 /
