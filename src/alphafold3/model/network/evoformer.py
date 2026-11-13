@@ -842,7 +842,9 @@ class Evoformer(hk.Module):
     # stack short an entire input.
     s_for_msa = target_feat
     if self.global_config.model in model_config.PAIR_ONLY_TRUNK:      # (ESMFold2's MSA encoder: its 451-wide s_inputs)
-      s_for_msa = featurization.widen_s_inputs(target_feat, batch.token_features.is_dna)
+      if is_dna is None:
+        raise ValueError("ESMFold2's MSA encoder widens s_inputs by is_dna, and none was passed")
+      s_for_msa = featurization.widen_s_inputs(target_feat, is_dna)
     if chai1 and single_post_recycle is not None:
       s_for_msa = single_post_recycle.astype(target_feat.dtype)
     msa_activations += hm.Linear(
@@ -1039,6 +1041,7 @@ class Evoformer(hk.Module):
               use_dropout=use_dropout,
               is_ligand=batch.token_features.is_ligand,
               asym_id=batch.token_features.asym_id,
+              is_dna=batch.token_features.is_dna,
           )
           _esm_tap('z_after_msa_encoder', pair_activations)
         pair_activations = self._embed_lm_pair(
