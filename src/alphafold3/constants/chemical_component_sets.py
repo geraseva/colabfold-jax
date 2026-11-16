@@ -28,8 +28,14 @@ _CCD_SETS_CCD_PICKLE_FILE = resources.filename(
     resources.ROOT / 'constants/converters/chemical_component_sets.pickle'
 )
 
-with open(_CCD_SETS_CCD_PICKLE_FILE, 'rb') as f:
-  _CCD_SET = safe_pickle.load(f)
+try:
+    with open(_CCD_SETS_CCD_PICKLE_FILE, 'rb') as f:
+      _CCD_SET = safe_pickle.load(f)
+except FileNotFoundError:
+   raise FileNotFoundError(
+                 f'File {_CCD_SETS_CCD_PICKLE_FILE} not found. '
+                  'Please run "python3 alphafold3/build_data.py"'
+             )
 
 # Glycan (or 'Saccharide') ligands.
 # _chem_comp.type containing 'saccharide' and 'linking' (when lower-case).

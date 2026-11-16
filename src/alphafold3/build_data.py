@@ -46,9 +46,11 @@ def build_data():
         break
     else:
       raise ValueError(
-          'Could not find components.cif. If libcifpp is installed in a'
+          f'Could not find {path}. If libcifpp is installed in a'
           ' non-standard location, please set the LIBCIFPP_DATA_DIR environment'
-          ' variable to the directory where libcifpp is installed.'
+          ' variable to the directory where libcifpp is installed.' \
+          f'Try: mkdir -p {pathlib.Path(site_path)}share/libcifpp  ; '
+          f'wget -O {pathlib.Path(site_path)}share/libcifpp/components.cif https://files.wwpdb.org/pub/pdb/data/monomers/components.cif'
       )
 
   out_root = resources.files(alphafold3.constants.converters)
@@ -87,3 +89,6 @@ def build_data():
   codes = sorted(ccd.keys())
   chemical_components.write_atomic(str(ccd_codes_path), lambda f: f.write('\n'.join(codes).encode()))
   print(f'Wrote {len(codes):,} CCD codes to {ccd_codes_path}', flush=True)
+
+if __name__ == '__main__':
+    build_data()

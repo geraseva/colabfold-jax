@@ -111,7 +111,12 @@ def get_af3_parser() -> FileArgumentParser:
         help="Whether to force the output directory to be used even if it already"
         "exists and is non-empty."
     )
-    
+    parser.add_argument(
+        "--model",
+        type=str,
+        default='alphafold3',
+        help="Denoising steps the diffusion sampler takes"
+    )   
     # Output control.
     parser.add_argument(
         "--save_embeddings",
@@ -125,26 +130,32 @@ def get_af3_parser() -> FileArgumentParser:
     parser.add_argument(
         "--model_dir",
         type=str,
-        default=DEFAULT_MODEL_DIR,
-        help="Path to the model to use for inference. Defaults to"
-        f" {DEFAULT_MODEL_DIR}."
+        default=None,
+        help="Path to the model to use for inference"
     )
     parser.add_argument(
         "--flash_attention_implementation",
         type=str,
-        default="triton",
-        choices=["triton", "cudnn", "xla"],
-        help="Flash attention implementation to use. 'triton' and 'cudnn' uses"
-        "a Triton and cuDNN flash attention implementation, respectively. The"
-        " Triton kernel is fastest and has been tested more thoroughly. The"
-        " Triton and cuDNN kernels require Ampere GPUs or later. 'xla' uses an"
-        " XLA attention implementation (no flash attention) and is portable"
-        " across GPU devices. Defaults to 'triton'."
+        default="auto",
+        choices=["auto", "triton", "cudnn", "xla"],
+        help="Flash attention implementation to use."
     )
+    parser.add_argument(
+        "--glu_kernel",
+        type=str,
+        default="auto",
+        choices=['auto', 'tokamax', 'pallas', 'volta'],
+        help="Which GLU kernel the triangle multiplication uses."
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--use_esm", dest="use_esm_embeddings", action="store_true", help="Enable ESM")
+    group.add_argument("--no_use_esm", dest="use_esm_embeddings", action="store_false", help="Disable ESM")
+    parser.set_defaults(use_esm_embeddings=None)
+
     parser.add_argument(
         "--num_recycles",
         type=int,
-        default=10,
+        default=1,
         help="Number of recycles to use during inference."
     )
     parser.add_argument(
@@ -292,7 +303,9 @@ def get_af3_args(arg_file: Optional[str] = None) -> Dict[str, Any]:
     if arg_file is None:
         args = parser.parse_args()
     else:
-        args = parser.parse_args([f'@{arg_file}'])
+        with open(arg_file) as f:
+            lines = f.read().replace("\\", " ").replace("\n", " ").split()
+        args = parser.parse_args(lines)
     
     # Reformat some of the arguments
     args.run_inference = binary_to_bool(args.run_inference)
