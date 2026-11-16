@@ -564,6 +564,12 @@ def native_esmfold2(model, batch, s_inputs, bonds, bond_types, n):
   s_inputs[:, 384 + n_esm + cols] = s447[:, n_af3:2 * n_af3]
   s_inputs[:, 384 + 2 * n_esm] = s447[:, 2 * n_af3]
   tf = batch.token_features
+  # (a DNA token's unknown residue is ESMFold2's DN, class 32, where AF3 writes N - its column 30 - for both: biohub's
+  # builder types it, and featurization.widen_s_inputs routes it by is_dna)
+  dna = np.asarray(tf.is_dna).astype(bool)[:n]
+  for off in (384, 384 + n_esm):
+    s_inputs[dna, off + n_esm - 1] = s_inputs[dna, off + cols[30]]
+    s_inputs[dna, off + cols[30]] = 0
   ids = [np.asarray(getattr(tf, k)).astype(int)
          for k in ('residue_index', 'asym_id', 'sym_id', 'entity_id',
                    'token_index')]

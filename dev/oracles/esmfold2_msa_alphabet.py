@@ -106,7 +106,7 @@ def main():
     print('\n'.join(bad))
     return 1
   print('  the 31-class s_inputs blocks take the same permutation '
-        '(DN, ESM class %d, has no AF3 slot and is dropped)' % (N_ESM - 1))
+        '(DN, ESM class %d, has no AF3 column: the graph routes a DNA token\'s N to it)' % (N_ESM - 1))
 
   # diffusion_head and the confidence head widen AF3's 31 columns back to ESM's 33 before a LayerNorm, both through
   # featurization.widen_to_esm_classes. Compare it against the converter's table by WIDENING a marker vector and
@@ -114,7 +114,7 @@ def main():
   import jax.numpy as jnp
   from alphafold3.model.network import featurization
   block = jnp.arange(1, n31 + 1, dtype=jnp.float32)
-  wide = np.asarray(featurization.widen_to_esm_classes(block))
+  wide = np.asarray(featurization.widen_to_esm_classes(block, False))
   bad = []
   for esm_c in range(N_ESM):
     af3_c = [c for c in range(n31) if perm[c] == esm_c]
@@ -128,6 +128,13 @@ def main():
     print('\n'.join(bad))
     return 1
   print("  the graph's widening to %d agrees with the converter" % N_ESM)
+  # ...and a DNA token's: AF3's N column (30) is ESMFold2's DN (32), its N slot empty - the one class AF3 cannot name
+  dna = np.asarray(featurization.widen_to_esm_classes(block, True))
+  want = wide.copy(); want[N_ESM - 1] = want[perm[30]]; want[perm[30]] = 0
+  if not np.array_equal(dna, want):
+    print("MISMATCH: a DNA token's unknown residue is not widened to DN")
+    return 1
+  print("  a DNA token's unknown residue widens to DN (ESM class %d)" % (N_ESM - 1))
   return 0
 
 

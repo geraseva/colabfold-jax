@@ -1279,14 +1279,16 @@ def map_esmfold2_to_af3_graph(sd, dims=None):
         'prev_embedding_layer_norm/offset': _arr(sd['pair_loop_proj.0.bias']),
     }
   put(P, {
-      'left_single/weights': remap_s_inputs(t(sd['z_init_1.weight'])),
-      'right_single/weights': remap_s_inputs(t(sd['z_init_2.weight'])),
+      # (451-wide, every row: the graph widens z_init's s_inputs as the heads' - featurization.widen_s_inputs - so
+      # DN, which AF3's 447 cannot express, keeps its trained rows)
+      'left_single/weights': permute_s_inputs(t(sd['z_init_1.weight'])),
+      'right_single/weights': permute_s_inputs(t(sd['z_init_2.weight'])),
       'bond_embedding/weights': t(sd['token_bonds.weight']),
       **recycle,
       '~_relative_encoding/position_activations/weights': t(sd['rel_pos.embed.weight']),
       **({'msa_activations/weights':
               remap_msa_feat(t(sd['msa_encoder.embed.weight'])),
-          'extra_msa_target_feat/weights': remap_s_inputs(
+          'extra_msa_target_feat/weights': permute_s_inputs(
               t(sd['msa_encoder.project_inputs.weight']))}
          if dims['n_msa'] else {}),
   })

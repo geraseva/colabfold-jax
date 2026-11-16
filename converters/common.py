@@ -42,7 +42,9 @@ from alphafold3.model.params import encode_record, read_records
 #      ESMFold2 blob before this into that order on load.
 #   3  chai-1's confidence single->pair projections on the right token axes (they were crossed): a chai1 blob
 #      before this folds, silently, with a wrong confidence head.
-BLOB_CONVENTION = 3
+#   4  ESMFold2's z_init and MSA-encoder s_inputs 451-wide (every row, DN's included) where they were AF3's 447: the
+#      graph widens their input as the heads' (featurization.widen_s_inputs). A 447-wide blob does not fit it.
+BLOB_CONVENTION = 4
 
 
 def write_params_blob(output_dir, filename, params, *, add_meta=True,
